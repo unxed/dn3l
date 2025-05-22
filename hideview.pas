@@ -4,20 +4,18 @@ unit hideview;
 interface
 
 uses
-  Objects, UViews, UDrivers; // Free Vision units
+  Objects, UViews, UDrivers; // Убедитесь, что Objects и UViews/UDrivers здесь
 
 type
   PHideView = ^THideView;
-  THideView = object(TView) // Используем object вместо class
+  THideView = object(TView)
   public
-    constructor Init(var Bounds: TRect);
-    // procedure HideView; virtual; // TView уже имеет Hide
-    // procedure ShowView; virtual; // TView уже имеет Show
+    constructor Init(var Bounds: Objects.TRect); // Явно указываем Objects.TRect
   end;
 
 implementation
 
-constructor THideView.Init(var Bounds: TRect);
+constructor THideView.Init(var Bounds: Objects.TRect);
 begin
   inherited Init(Bounds);
 end;

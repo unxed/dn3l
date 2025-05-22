@@ -4,21 +4,21 @@ unit flpanelx;
 interface
 
 uses
-  Objects, UViews, UDrivers, hideview;
+  Classes, SysUtils, Objects, UViews, UDrivers, hideview; // Убедитесь, что Objects и UViews/UDrivers здесь
 
 type
   PFilePanelRoot = ^TFilePanelRoot;
-  TFilePanelRoot = object(THideView) // Используем object
+  TFilePanelRoot = object(THideView)
   public
-    constructor Init(var Bounds: TRect; ADrive: Integer; AScrBar: PScrollBar);
+    // Явно указываем Objects.TRect
+    constructor Init(var Bounds: Objects.TRect; ADrive: Integer; AScrBar: PScrollBar);
   end;
 
 implementation
 
-constructor TFilePanelRoot.Init(var Bounds: TRect; ADrive: Integer; AScrBar: PScrollBar);
+constructor TFilePanelRoot.Init(var Bounds: Objects.TRect; ADrive: Integer; AScrBar: PScrollBar);
 begin
   inherited Init(Bounds);
-  // ADrive и AScrBar пока не используются
 end;
 
 end.
