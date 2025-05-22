@@ -11,8 +11,6 @@ cd dn3l
 ```
 ## Reasons
 This can be considered an experiment to determine whether it's possible to recreate Dos Navigator using a modern software stack with Unicode support. It is also an experiment in source code analysis and software development using large language models. Jet another goal is to popularize in the free software world rich console applications with UX not inferior to the Windows console ones.
-## LLM prompts (feel free to fork)
-1. [Initial one](https://aistudio.google.com/app/prompts?state=%7B%22ids%22:%5B%221rbRS_ZbP-y6JhQaZJGEKY2G8hsc8hWEu%22%5D,%22action%22:%22open%22,%22userId%22:%22115224561273124777276%22,%22resourceKeys%22:%7B%7D%7D&usp=sharing)
 ## Advantages
 
 - Uses **fpc** — a free, modern, and actively developed compiler.
@@ -21,3 +19,5 @@ This can be considered an experiment to determine whether it's possible to recre
 - **Hotkeys work in any keyboard layout** (at least in Kovd Goyal's kitty, far2l, and Windows Terminal).
 - **Planned support for the system clipboard** (at least in Kovd Goyal's kitty, far2l, and Windows Terminal — the used version of Free Vision already supports it).
 - The architecture is based on the source code of the **latest DOS version** of DOS Navigator, so the code will be familiar to anyone who worked with the original DOS version or any of its later forks.
+## LLM prompts (feel free to fork)
+1. [Initial one](https://aistudio.google.com/app/prompts?state=%7B%22ids%22:%5B%221rbRS_ZbP-y6JhQaZJGEKY2G8hsc8hWEu%22%5D,%22action%22:%22open%22,%22userId%22:%22115224561273124777276%22,%22resourceKeys%22:%7B%7D%7D&usp=sharing)
