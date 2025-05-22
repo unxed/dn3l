@@ -1,10 +1,9 @@
-{$MODE OBJFPC}{$H+}
 unit flpanel;
 
 interface
 
 uses
-  Objects, UViews, UDrivers, flpanelx, SysUtils, {$IFDEF UNIX}BaseUnix, Unix,{$ELSE}Dos,{$ENDIF} Classes;
+  Objects, UViews, UDrivers, flpanelx, SysUtils, {$IFDEF UNIX}BaseUnix, Unix,{$ELSE}Dos,{$ENDIF} Classes, LazUTF8;
 
 type
   PFilePanel = ^TFilePanel;
@@ -117,7 +116,7 @@ begin
       S := Copy(S, 1, Size.X - 2);
 
     MoveChar(B, ' ', TextColor, Size.X);
-    MoveStr(B, S, TextColor);
+    MoveStr(B, UTF8ToUTF16(S), TextColor);
     WriteLine(1, YPos, Size.X - 2, 1, B);
     Inc(YPos);
   end;
@@ -125,7 +124,7 @@ begin
   S := PanelID + ' Path: ' + CurrentDir;
   if Length(S) > Size.X - 2 then S := Copy(S,1, Size.X - 2);
   MoveChar(B, ' ', TextColor, Size.X);
-  MoveStr(B, S, TextColor);
+  MoveStr(B, UTF8ToUTF16(S), TextColor);
   if Size.Y > 0 then
       WriteLine(1, Size.Y - 1, Size.X - 2, 1, B);
 end;

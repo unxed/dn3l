@@ -10,4 +10,3 @@ includedir=../../rtl-console/src/inc
 
 [default]
 fpcdir=../../..
-fpcopts=-FcUTF8

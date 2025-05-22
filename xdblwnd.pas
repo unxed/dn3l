@@ -1,4 +1,3 @@
-{$MODE OBJFPC}{$H+}
 unit xdblwnd;
 
 interface
