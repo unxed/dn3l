@@ -16,7 +16,7 @@ This can be considered an experiment to determine whether it's possible to recre
 - Uses **fpc** — a free, modern, and actively developed compiler.
 - **License purity**: instead of the proprietary Turbo Vision by Borland, a free alternative — **Free Vision** from fpc — is used as the base.
 - **Unicode support**: a Unicode-compatible version of Free Vision from the master branch is used.
-- **Hotkeys work in any keyboard layout** (at least in Kovd Goyal's kitty, far2l, and Windows Terminal).
+- **Hotkeys work in any keyboard layout** (at least in Kovd Goyal's kitty, far2l, and Windows Terminal; one blocker still exist [on Free Vision side]https://gitlab.com/freepascal.org/fpc/source/-/issues/41266).
 - **Planned support for the system clipboard** (at least in Kovd Goyal's kitty, far2l, and Windows Terminal — the used version of Free Vision already supports it).
 - The architecture is based on the source code of the **latest DOS version** of DOS Navigator, so the code will be familiar to anyone who worked with the original DOS version or any of its later forks.
 ## LLM prompts (feel free to fork)
