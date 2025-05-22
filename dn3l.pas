@@ -79,3 +79,38 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+
+program dn3l;
+
+{$mode objfpc}{$H+}
+{$codepage UTF8}
+
+uses
+  {$IFDEF UNIX}{$IFDEF UseCThreads}
+  cthreads,
+  {$ENDIF}{$ENDIF}
+  UApp,
+  DNApp,
+  DNLogger;
+
+var
+  MyApp: TDNApp;
+
+begin
+  Logger.Create('dn3l.log'); // Initialize logger with a specific file name
+  Logger.Log('--------------------------------------------------');
+  Logger.Log('APPLICATION START');
+  Logger.Log('--------------------------------------------------');
+
+  MyApp.Init;
+  Logger.Log('MyApp.Init completed.');
+  MyApp.Run;
+  Logger.Log('MyApp.Run completed.');
+  MyApp.Done;
+  Logger.Log('Application finished normally.');
+
+  Logger.Log('--------------------------------------------------');
+  Logger.Log('APPLICATION END');
+  Logger.Log('--------------------------------------------------');
+  // Logger will be finalized by its unit's finalization section
+end.

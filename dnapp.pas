@@ -79,3 +79,106 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+
+unit dnapp;
+
+{$mode objfpc}{$H+}
+{$codepage UTF8}
+
+interface
+
+uses
+  UApp, UViews, Objects, UDrivers, UMenus, // Free Vision units
+  DblWnd;                                // Our double window unit
+
+type
+  PDNApp = ^TDNApp;
+  TDNApp = object(TApplication)
+  public
+    constructor Init;
+    procedure InitDeskTop; virtual;
+    procedure InitMenuBar; virtual;
+    procedure InitStatusLine; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual;
+  end;
+
+implementation
+
+uses FVConsts; // For cmQuit, kbAltX
+
+constructor TDNApp.Init;
+begin
+  inherited Init;
+  // Custom application initialization can go here
+end;
+
+procedure TDNApp.InitMenuBar;
+var
+  R: TRect;
+begin
+  // For this prototype, a very minimal menu bar for Alt+X functionality
+  GetExtent(R);
+  R.B.Y := R.A.Y + 1;
+  MenuBar := New(PMenuBar, Init(R,
+    NewMenu(
+      NewSubMenu('~F~ile', hcNoContext,
+        NewMenu(
+          NewItem('E~x~it', 'Alt+X', kbAltX, cmQuit, hcNoContext, nil)
+        ), nil
+      )
+    )
+  ));
+  if MenuBar <> nil then
+    Insert(MenuBar); // Ensure it's part of the application group
+end;
+
+procedure TDNApp.InitStatusLine;
+var
+  R: TRect;
+begin
+  // For this prototype, a minimal status line
+  GetExtent(R);
+  R.A.Y := R.B.Y - 1;
+  StatusLine := New(PStatusLine, Init(R,
+    NewStatusDef(0, $FFFF,
+      NewStatusKey('~Alt+X~ Exit', kbAltX, cmQuit, nil),
+    nil)
+  ));
+  if StatusLine <> nil then
+    Insert(StatusLine); // Ensure it's part of the application group
+end;
+
+procedure TDNApp.InitDesktop;
+var
+  R: TRect;
+  DW: PDoublePanelWindow;
+begin
+  inherited InitDesktop; // This creates Desktop: PDesktop
+
+  Desktop^.GetExtent(R);
+  // Adjust R for MenuBar and StatusLine if they are visible
+  if (MenuBar <> nil) and MenuBar^.GetState(sfVisible) then
+    Inc(R.A.Y);
+  if (StatusLine <> nil) and StatusLine^.GetState(sfVisible) then
+    Dec(R.B.Y);
+
+  DW := New(PDoublePanelWindow, Init(R, 'DN3L Prototype - Unicode', 0));
+  if DW <> nil then
+    Desktop^.Insert(DW);
+end;
+
+procedure TDNApp.HandleEvent(var Event: TEvent);
+begin
+  inherited HandleEvent(Event); // This will handle cmQuit from Alt+X via menu
+  // Fallback if menu is not set up or Alt+X is not in menu
+  if (Event.What = evKeyDown) and (Event.KeyCode = kbAltX) then
+  begin
+    if (Desktop = nil) or (Desktop^.Valid(cmQuit)) then
+    begin
+      EndModal(cmQuit);
+      ClearEvent(Event);
+    end;
+  end;
+end;
+
+end.

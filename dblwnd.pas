@@ -79,3 +79,93 @@
 //  (including the GNU Public Licence).
 //
 //////////////////////////////////////////////////////////////////////////}
+
+unit dblwnd;
+
+{$mode objfpc}{$H+}
+{$codepage UTF8}
+
+interface
+
+uses
+  UViews, Objects, UDrivers,
+  FlPanel,
+  DNLogger;
+
+type
+  PDoublePanelWindow = ^TDoublePanelWindow;
+  TDoublePanelWindow = object(TWindow)
+  public
+    LeftPanel: PFilePanel;
+    RightPanel: PFilePanel;
+    constructor Init(var Bounds: TRect; ATitle: String; ANumber: Word);
+  end;
+
+implementation
+
+constructor TDoublePanelWindow.Init(var Bounds: TRect; ATitle: String; ANumber: Word);
+var
+  ClientR, PanelR: TRect;
+  MidX: Integer;
+begin
+  Logger.Log('--------------------------------------------------');
+  Logger.Log('TDoublePanelWindow.Init starting...');
+  Logger.Log('Initial Bounds for TDoublePanelWindow', Bounds);
+  Logger.Log('Title', ATitle);
+  Logger.Log('Window Number', ANumber);
+
+  inherited Init(Bounds, ATitle, ANumber);
+  Flags := Flags or wfGrow;
+  Logger.Log('TDoublePanelWindow.Init: inherited TWindow.Init completed.');
+  Logger.Log('TDoublePanelWindow Size after TWindow.Init', Self.Size);
+  Logger.Log('TDoublePanelWindow Origin after TWindow.Init', Self.Origin);
+
+  GetExtent(ClientR);
+  Logger.Log('TDoublePanelWindow ClientRect (ClientR)', ClientR);
+
+  if (ClientR.B.X <= ClientR.A.X) or (ClientR.B.Y <= ClientR.A.Y) then
+  begin
+    Logger.Log('WARNING: TDoublePanelWindow ClientRect has zero or negative size!', ClientR);
+    // Panels will likely not be visible or correctly sized.
+  end;
+
+  MidX := (ClientR.A.X + ClientR.B.X) div 2; // More robust for ClientR.A.X potentially not 0
+  Logger.Log('MidX calculated', MidX);
+
+  // Left Panel
+  PanelR.A.X := ClientR.A.X;
+  PanelR.A.Y := ClientR.A.Y;
+  PanelR.B.X := MidX;
+  PanelR.B.Y := ClientR.B.Y;
+  Logger.Log('Calculated Bounds for LeftPanel (PanelR)', PanelR);
+  LeftPanel := New(PFilePanel, Init(PanelR));
+  if LeftPanel <> nil then
+  begin
+    Logger.Log('LeftPanel object created', LeftPanel);
+    Insert(LeftPanel);
+    Logger.Log('LeftPanel inserted into TDoublePanelWindow.');
+  end
+  else
+    Logger.Log('LeftPanel FAILED to create.');
+
+  // Right Panel
+  PanelR.A.X := MidX;
+  PanelR.A.Y := ClientR.A.Y;
+  PanelR.B.X := ClientR.B.X;
+  PanelR.B.Y := ClientR.B.Y;
+  Logger.Log('Calculated Bounds for RightPanel (PanelR)', PanelR);
+  RightPanel := New(PFilePanel, Init(PanelR));
+  if RightPanel <> nil then
+  begin
+    Logger.Log('RightPanel object created', RightPanel);
+    Insert(RightPanel);
+    Logger.Log('RightPanel inserted into TDoublePanelWindow.');
+  end
+  else
+    Logger.Log('RightPanel FAILED to create.');
+
+  Logger.Log('TDoublePanelWindow.Init finished.');
+  Logger.Log('--------------------------------------------------');
+end;
+
+end.
