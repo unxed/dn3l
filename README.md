@@ -1,5 +1,6 @@
 # dn3l
 Dos Navigator recreation (using LLMs, based on fpc and Free Vision)
+![Screenshot](/screenshots/0002.jpg)
 ## How to build (Ubuntu 24.04+)
 ```
 sudo apt install fpc
