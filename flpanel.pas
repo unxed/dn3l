@@ -116,7 +116,7 @@ begin
       S := Copy(S, 1, Size.X - 2);
 
     MoveChar(B, ' ', TextColor, Size.X);
-    MoveStr(B, UTF8ToUTF16(S), TextColor);
+    MoveStr(B, S, TextColor);
     WriteLine(1, YPos, Size.X - 2, 1, B);
     Inc(YPos);
   end;
@@ -124,7 +124,7 @@ begin
   S := PanelID + ' Path: ' + CurrentDir;
   if Length(S) > Size.X - 2 then S := Copy(S,1, Size.X - 2);
   MoveChar(B, ' ', TextColor, Size.X);
-  MoveStr(B, UTF8ToUTF16(S), TextColor);
+  MoveStr(B, S, TextColor);
   if Size.Y > 0 then
       WriteLine(1, Size.Y - 1, Size.X - 2, 1, B);
 end;
