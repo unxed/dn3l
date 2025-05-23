@@ -32,5 +32,12 @@ This can be considered an experiment to determine whether it's possible to recre
 NB! FreeVision Unicode uses UnicodeString type that has UTF-16 inside. Most of modern UNIX-like operating systems use UTF-8 by default (and even modern Windows versions support it as console "ASCII" charset), so when developing DN3L we proceed from the fact that in variables of the String type we have exactly this charset. To avoid frequent usage of UTF8Decode() and UTF8Encode(), we are adding LazUTF8 module which does all needed UTF8<>UTF16 conversions automatically and can work as a bridge between the worlds (this module is made of several Lazarus modules merged together). Don't worry about performance: [far2l](https://github.com/elfmz/far2l/) does exactly the same and no one ever noticed any performance problems: modern CPUs are fast enough.
 ## LLM prompts (feel free to fork)
 1. [Initial one](https://aistudio.google.com/app/prompts?state=%7B%22ids%22:%5B%221rbRS_ZbP-y6JhQaZJGEKY2G8hsc8hWEu%22%5D,%22action%22:%22open%22,%22userId%22:%22115224561273124777276%22,%22resourceKeys%22:%7B%7D%7D&usp=sharing)
+## Full list of related fpc issues
+- https://gitlab.com/freepascal.org/fpc/source/-/issues/40671
+- https://gitlab.com/freepascal.org/fpc/source/-/issues/40672
+- https://gitlab.com/freepascal.org/fpc/source/-/issues/40673
+- https://gitlab.com/freepascal.org/fpc/source/-/issues/41266
+- https://gitlab.com/freepascal.org/fpc/source/-/issues/41268
+- https://gitlab.com/freepascal.org/fpc/source/-/issues/41269
 ## Why "3l"?
 "l" is for Linux and 3 sounds similar to "free"
