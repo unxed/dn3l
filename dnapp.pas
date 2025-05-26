@@ -159,6 +159,10 @@ begin
   if (StatusLine <> nil) and StatusLine^.GetState(sfVisible) then
     Dec(R.B.Y);
 
+  // Use all availble space, we do not need shadow here
+  Dec(R.A.Y);
+  Inc(R.B.Y);
+
   DW := New(PDoublePanelWindow, Init(R, 'DN3L Prototype - Unicode', 0));
   if DW <> nil then
     Desktop^.Insert(DW);
