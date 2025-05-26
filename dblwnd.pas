@@ -82,9 +82,6 @@
 
 unit dblwnd;
 
-{$mode objfpc}{$H+}
-{$codepage UTF8}
-
 interface
 
 uses

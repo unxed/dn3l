@@ -82,9 +82,6 @@
 
 unit dnapp;
 
-{$mode objfpc}{$H+}
-{$codepage UTF8}
-
 interface
 
 uses

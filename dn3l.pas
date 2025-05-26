@@ -82,9 +82,6 @@
 
 program dn3l;
 
-{$mode objfpc}{$H+}
-{$codepage UTF8}
-
 uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
