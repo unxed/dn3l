@@ -434,7 +434,6 @@ begin
       DisplayName := Item^.FileName;
       if Item^.IsDirectory then
       begin
-        Attrib := GetColor($02); // Directory color (palette index 2)
         DisplayName := '[' + DisplayName + ']';
       end
       else
