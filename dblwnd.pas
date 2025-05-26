@@ -133,10 +133,10 @@ begin
   Logger.Log('MidX calculated', MidX);
 
   // Left Panel
-  PanelR.A.X := ClientR.A.X;
-  PanelR.A.Y := ClientR.A.Y;
-  PanelR.B.X := MidX;
-  PanelR.B.Y := ClientR.B.Y;
+  PanelR.A.X := ClientR.A.X + 1;
+  PanelR.A.Y := ClientR.A.Y + 1;
+  PanelR.B.X := MidX - 1;
+  PanelR.B.Y := ClientR.B.Y - 1;
   Logger.Log('Calculated Bounds for LeftPanel (PanelR)', PanelR);
   LeftPanel := New(PFilePanel, Init(PanelR));
   if LeftPanel <> nil then
@@ -150,9 +150,9 @@ begin
 
   // Right Panel
   PanelR.A.X := MidX;
-  PanelR.A.Y := ClientR.A.Y;
-  PanelR.B.X := ClientR.B.X;
-  PanelR.B.Y := ClientR.B.Y;
+  PanelR.A.Y := ClientR.A.Y + 1;
+  PanelR.B.X := ClientR.B.X - 1;
+  PanelR.B.Y := ClientR.B.Y - 1;
   Logger.Log('Calculated Bounds for RightPanel (PanelR)', PanelR);
   RightPanel := New(PFilePanel, Init(PanelR));
   if RightPanel <> nil then

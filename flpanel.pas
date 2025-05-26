@@ -416,7 +416,7 @@ var
   DisplayName: String;
   NameWidth: Integer;
 begin
-  NameWidth := Size.X - 2;
+  NameWidth := Size.X;
   if NameWidth <=0 then Exit;
 
   if IsFocused and GetState(sfFocused) then
@@ -445,7 +445,7 @@ begin
       MoveStr(B, DisplayName, Attrib);
     end;
   end;
-  WriteLine(1, Y + 1, NameWidth, 1, B);
+  WriteLine(0, Y, NameWidth, 1, B);
 end;
 
 
@@ -460,15 +460,15 @@ begin
 
   MaxDisplayItems := Size.Y - 2;
 
-  for Y := 0 to MaxDisplayItems - 1 do
+  for Y := 0 to MaxDisplayItems + 1 do
   begin
     CurrentDisplayIndex := TopItemIndex + Y;
     if CurrentDisplayIndex < FileList^.Count then
       DrawItem(Y, CurrentDisplayIndex, CurrentDisplayIndex = FocusedItemIndex, B)
     else // Draw empty line if no more items
     begin
-      MoveChar(B, ' ', GetColor($01), Size.X - 2);
-      WriteLine(1, Y + 1, Size.X - 2, 1, B);
+      MoveChar(B, ' ', GetColor($01), Size.X);
+      WriteLine(0, Y, Size.X, 1, B);
     end;
   end;
 end;
