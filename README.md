@@ -11,7 +11,7 @@ cd dn3l
 ./build.sh
 ```
 ## Reasons
-This can be considered an experiment to determine whether it's possible to recreate Dos Navigator using a modern software stack with Unicode support. It is also an experiment in source code analysis and software development using large language models. Jet another goal is to popularize in the free software world rich console applications with UX not inferior to the Windows console ones.
+This can be considered an experiment to determine whether it's possible to recreate Dos Navigator using a modern software stack with Unicode support. It is also an experiment in source code analysis and software development using large language models. Yet another goal is to popularize in the free software world rich console applications with UX not inferior to the Windows console ones.
 ## Advantages
 
 - Uses [Free Pascal (fpc)](https://www.freepascal.org/) — a **free, modern, and actively developed** compiler.
