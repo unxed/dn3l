@@ -82,33 +82,94 @@
 
 unit flpanel;
 
-{$mode objfpc}{$H+}
+{$mode objfpc}{$H+} // Or {$mode tp} if you want stricter TP compatibility for syntax
 {$codepage UTF8}
 
 interface
 
 uses
-  UViews, Objects, UDrivers,
+  UViews, Objects, UDrivers, UDialogs, // Free Vision units
+  Dos,       // For FindFirst, FindNext, SearchRec, fSplit, GetCurDir
+  SysUtils,  // For DirectoryExists, ExtractFileName, ExtractFilePath (modern helpers)
   DNLogger;
 
 type
+  PFileListItem = ^TFileListItem;
+  TFileListItem = object(TObject) // Simple object to hold file name
+    FileName: String; // Using FPC's default string (Ansi/UTF8)
+    IsDirectory: Boolean;
+    constructor Init(const AFileName: String; AIsDirectory: Boolean);
+    destructor Done; virtual;
+  end;
+
+  PFileListCollection = ^TFileListCollection;
+  TFileListCollection = object(TCollection)
+    constructor Init;
+    // We might add sorting methods later
+  end;
+
   PFilePanel = ^TFilePanel;
   TFilePanel = object(TGroup)
   public
+    FileList: PFileListCollection;
+    CurrentPath: String; // Store the current path
     constructor Init(var Bounds: TRect);
-    procedure Draw; virtual; // Added Draw method
+    destructor Done; virtual;
+    procedure Draw; virtual;
+    procedure LoadDirectory(const Path: String);
+    // function GetPalette: PPalette; virtual; // Skip for now
   end;
 
 implementation
 
+{ TFileListItem }
+
+constructor TFileListItem.Init(const AFileName: String; AIsDirectory: Boolean);
+begin
+  inherited Init;
+  FileName := AFileName;
+  IsDirectory := AIsDirectory;
+end;
+
+destructor TFileListItem.Done;
+begin
+  // FileName string is managed automatically
+  inherited Done;
+end;
+
+{ TFileListCollection }
+
+constructor TFileListCollection.Init;
+begin
+  // Base TCollection Init is suitable for now.
+  // Parameters are: initial size, delta for growth.
+  inherited Init(10, 5);
+end;
+
+{ TFilePanel }
+
 constructor TFilePanel.Init(var Bounds: TRect);
+var
+  InitialPath: String; // DOS unit PathStr for GetCurDir
 begin
   Logger.Log('  TFilePanel.Init starting...');
   Logger.Log('  Initial Bounds for TFilePanel', Bounds);
 
   inherited Init(Bounds);
-  Options := Options or ofFramed or ofSelectable;
+  Options := Options or ofFramed or ofSelectable or ofBuffered; // Added ofBuffered
   GrowMode := gfGrowAll;
+
+  FileList := New(PFileListCollection, Init);
+
+  {$I-}
+  GetDir(0, InitialPath); // Get current directory for drive 0 (current drive)
+  {$I+}
+  if IOResult <> 0 then
+    CurrentPath := '.' + DirectorySeparator // Default to current dir on error
+  else
+    CurrentPath := IncludeTrailingPathDelimiter(InitialPath);
+
+  LoadDirectory(CurrentPath);
 
   Logger.Log('  TFilePanel.Init finished. Options', Options);
   Logger.Log('  TFilePanel Size after TGroup.Init', Self.Size);
@@ -120,76 +181,124 @@ begin
      Logger.Log('  TFilePanel initialized with valid size.');
 end;
 
+destructor TFilePanel.Done;
+begin
+  Logger.Log('  TFilePanel.Done starting for panel at', Origin);
+  if Assigned(FileList) then
+    FreeAndNil(FileList); // FreeVision's way to dispose and nil a TCollection
+  inherited Done;
+  Logger.Log('  TFilePanel.Done finished for panel at', Origin);
+end;
+
+procedure TFilePanel.LoadDirectory(const Path: String);
+var
+  SR: TRawbyteSearchRec;
+  Item: PFileListItem;
+  DirToList: String;
+begin
+  Logger.Log('  TFilePanel.LoadDirectory: Loading path', Path);
+  if Assigned(FileList) then
+    FileList^.FreeAll // Clear existing items
+  else
+    FileList := New(PFileListCollection, Init);
+
+  CurrentPath := IncludeTrailingPathDelimiter(Path);
+  DirToList := CurrentPath + '*.*'; // Or just '*' on Unix
+
+  // Add ".." for parent directory, unless it's a root
+  if (Length(CurrentPath) > 0) and
+     not ((Length(CurrentPath) = 1) and (CurrentPath[1] = DirectorySeparator)) and // Not root "/"
+     not ((Length(CurrentPath) = 3) and (CurrentPath[2] = ':') and (CurrentPath[3] = DirectorySeparator)) then // Not "C:\"
+  begin
+    Item := New(PFileListItem, Init('..', True));
+    FileList^.Insert(Item);
+  end;
+
+  {$I-}
+  FindFirst(DirToList, faAnyFile, SR);
+  {$I+}
+  if DosError <> 0 then
+  begin
+    Logger.Log('  TFilePanel.LoadDirectory: FindFirst failed for', DirToList);
+    Logger.Log('  DOS Error', DosError);
+    // Optionally insert an error message item
+    Item := New(PFileListItem, Init('<Error reading directory>', False));
+    FileList^.Insert(Item);
+    Exit;
+  end;
+
+  repeat
+    if (SR.Name <> '.') and (SR.Name <> '..') then
+    begin
+      Item := New(PFileListItem, Init(SR.Name, (SR.Attr and faDirectory) <> 0));
+      FileList^.Insert(Item);
+    end;
+  until FindNext(SR) <> 0;
+  FindClose(SR);
+  {$I+}
+  Logger.Log('  TFilePanel.LoadDirectory: Found items', FileList^.Count);
+end;
+
 procedure TFilePanel.Draw;
 var
   B: TDrawBuffer;
-  Color: Byte;
-  PanelID: string;
+  Color, Attrib: Byte;
+  PanelIDText: String; // Changed from UnicodeString
+  I, Y, MaxDisplayItems, NameWidth: Integer;
+  Item: PFileListItem;
+  DisplayName: String;
 begin
-  Logger.Log('  TFilePanel.Draw CALLED for panel at', Self.Origin);
-  Logger.Log('  TFilePanel.Draw: Size', Self.Size);
-  Logger.Log('  TFilePanel.Draw: State (Hex)', Self.State);
-  Logger.Log('  TFilePanel.Draw: Options (Hex)', Self.Options);
-  Logger.Log('  TFilePanel.Draw: sfVisible set?', GetState(sfVisible));
-  Logger.Log('  TFilePanel.Draw: ofFramed set?', Options and ofFramed <> 0);
+  // Logger.Log('  TFilePanel.Draw CALLED for panel at', Self.Origin);
+  // Logger.Log('  TFilePanel.Draw: Size', Self.Size);
 
-  // Call inherited Draw first to draw the frame if ofFramed is set
-  // and to handle background if not buffered or if options specify.
-  inherited Draw;
-  Logger.Log('  TFilePanel.Draw: inherited Draw completed.');
+  inherited Draw; // This draws the frame and clears the background
 
-  // Now draw something inside the client area of the panel if it's large enough
-  // The client area is Size.X-2, Size.Y-2 because of the frame.
-  if (Size.X > 2) and (Size.Y > 2) then
+  if (Size.X <= 2) or (Size.Y <= 2) then
   begin
-    Color := GetColor($01); // GetColor(1) for TGroup typically gives normal text color
-
-    // Simple identifier for which panel this is (based on its X origin)
-    if Origin.X < Owner^.Size.X div 2 then
-      PanelID := 'Left Panel'
-    else
-      PanelID := 'Right Panel';
-
-    // Draw the PanelID string inside the panel's client area
-    // Coordinates for WriteLine are relative to the TFilePanel's client area.
-    // The client area for a framed group starts at (1,1) relative to its own Origin.
-    // So to draw at the top-left corner *inside* the frame, use (0,0) for WriteLine
-    // if TGroup's WriteLine handles client coordinates, or (1,1) if it expects
-    // absolute coordinates within the view's bounds.
-    // Let's assume WriteLine (and WriteStr below) work with coordinates
-    // relative to the view's full bounds (0,0) to (Size.X-1, Size.Y-1).
-    // The frame itself occupies row/col 0 and Size.Y-1 / Size.X-1.
-    // So, client area starts at (1,1).
-
-    // Clear a line inside the panel for our text
-    MoveChar(B, ' ', Color, Size.X - 2); // Width of client area
-    WriteLine(1, 1, Size.X - 2, 1, B); // Draw at (1,1) within the panel
-
-    // Write the text
-    if Length(PanelID) <= (Size.X - 2) then
-    begin
-        Logger.Log('  TFilePanel.Draw: Drawing PanelID', PanelID);
-        // WriteStr expects coordinates relative to the view's origin (0,0)
-        WriteStr(2, 1, PanelID, Color);
-    end
-    else
-        Logger.Log('  TFilePanel.Draw: PanelID too long for panel width', PanelID);
-
-    // You could draw a border for the client area too for more debugging
-    // GetClientRect(R); -- TGroup does not have GetClientRect
-    // Instead use Size.X-2, Size.Y-2
-    // For Y := 0 to Size.Y - 3 do
-    // begin
-    //   MoveChar(B, '#', Color, Size.X-2);
-    //   WriteLine(1, 1 + Y, Size.X - 2, 1, B);
-    // end;
-
-  end
-  else
-  begin
-    Logger.Log('  TFilePanel.Draw: Panel too small to draw content (Size.X <= 2 or Size.Y <= 2).');
+    // Logger.Log('  TFilePanel.Draw: Panel too small for content.');
+    Exit;
   end;
-  Logger.Log('  TFilePanel.Draw finished for panel at', Self.Origin);
+
+  // Client area is inside the frame
+  MaxDisplayItems := Size.Y - 2;
+  NameWidth := Size.X - 2; // Width available for file name inside the frame
+
+  if NameWidth <=0 then Exit;
+
+  Color := GetColor($01); // Normal text color
+
+  for Y := 0 to MaxDisplayItems - 1 do
+  begin
+    MoveChar(B, ' ', Color, NameWidth); // Clear the line inside the panel
+
+    if (FileList <> nil) and (Y < FileList^.Count) then
+    begin
+      Item := PFileListItem(FileList^.At(Y));
+      if Item <> nil then
+      begin
+        DisplayName := Item^.FileName;
+        if Item^.IsDirectory then
+        begin
+          Attrib := GetColor($02); // Example: different color for directories (use palette index)
+          // You might want to prefix/suffix directories, e.g., "[DIR]" or "/"
+          DisplayName := '[' + DisplayName + ']';
+        end
+        else
+          Attrib := Color;
+
+        // Truncate if too long
+        if Length(DisplayName) > NameWidth then
+          SetLength(DisplayName, NameWidth);
+
+        MoveStr(B, DisplayName, Attrib);
+      end;
+    end;
+    // WriteLine coordinates are relative to the view's (0,0)
+    // Frame takes up row 0 and row Size.Y-1.
+    // Client area Y starts at 1.
+    WriteLine(1, Y + 1, NameWidth, 1, B);
+  end;
+  // Logger.Log('  TFilePanel.Draw finished for panel at', Self.Origin);
 end;
 
 end.
