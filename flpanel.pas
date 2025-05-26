@@ -186,7 +186,7 @@ destructor TFilePanel.Done;
 begin
   Logger.Log('  TFilePanel.Done starting for panel at', Origin);
   if Assigned(FileList) then
-    FreeAndNil(FileList);
+    Dispose(FileList);
   inherited Done;
   Logger.Log('  TFilePanel.Done finished for panel at', Origin);
 end;
