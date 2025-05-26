@@ -82,21 +82,21 @@
 
 unit flpanel;
 
-{$mode objfpc}{$H+} // Or {$mode tp} if you want stricter TP compatibility for syntax
+{$mode objfpc}{$H+}
 {$codepage UTF8}
 
 interface
 
 uses
-  UViews, Objects, UDrivers, UDialogs, // Free Vision units
-  Dos,       // For FindFirst, FindNext, SearchRec, fSplit, GetCurDir
-  SysUtils,  // For DirectoryExists, ExtractFileName, ExtractFilePath (modern helpers)
-  DNLogger;
+  UViews, Objects, UDrivers, UDialogs,
+  Dos,
+  SysUtils, // For PathDelim, ExtractFilePath, ChDir, GetCurrentDir, etc.
+  DNLogger, LazUTF8;
 
 type
   PFileListItem = ^TFileListItem;
-  TFileListItem = object(TObject) // Simple object to hold file name
-    FileName: String; // Using FPC's default string (Ansi/UTF8)
+  TFileListItem = object(TObject)
+    FileName: String;
     IsDirectory: Boolean;
     constructor Init(const AFileName: String; AIsDirectory: Boolean);
     destructor Done; virtual;
@@ -105,22 +105,31 @@ type
   PFileListCollection = ^TFileListCollection;
   TFileListCollection = object(TCollection)
     constructor Init;
-    // We might add sorting methods later
   end;
 
   PFilePanel = ^TFilePanel;
   TFilePanel = object(TGroup)
   public
     FileList: PFileListCollection;
-    CurrentPath: String; // Store the current path
+    CurrentPath: String;
+    FocusedItemIndex: Integer; // Index of the currently focused item
+    TopItemIndex: Integer;     // Index of the item displayed at the top (for scrolling later)
+
     constructor Init(var Bounds: TRect);
     destructor Done; virtual;
     procedure Draw; virtual;
+    procedure HandleEvent(var Event: TEvent); virtual; // To handle keyboard
     procedure LoadDirectory(const Path: String);
-    // function GetPalette: PPalette; virtual; // Skip for now
+    procedure SetFocus(NewFocusIndex: Integer);
+  private
+    procedure DrawItem(Y: Integer; Index: Integer; IsFocused: Boolean; var B: TDrawBuffer);
+    procedure ChangeDirectory(const NewPath: String);
+    procedure ExecuteFocusedItem;
   end;
 
 implementation
+
+uses FVConsts; // For key codes like kbUp, kbDown, kbEnter
 
 { TFileListItem }
 
@@ -133,7 +142,6 @@ end;
 
 destructor TFileListItem.Done;
 begin
-  // FileName string is managed automatically
   inherited Done;
 end;
 
@@ -141,51 +149,44 @@ end;
 
 constructor TFileListCollection.Init;
 begin
-  // Base TCollection Init is suitable for now.
-  // Parameters are: initial size, delta for growth.
-  inherited Init(10, 5);
+  inherited Init(20, 10); // Increased initial capacity and delta
 end;
 
 { TFilePanel }
 
 constructor TFilePanel.Init(var Bounds: TRect);
 var
-  InitialPath: String; // DOS unit PathStr for GetCurDir
+  InitialPath: String;
 begin
   Logger.Log('  TFilePanel.Init starting...');
   Logger.Log('  Initial Bounds for TFilePanel', Bounds);
 
   inherited Init(Bounds);
-  Options := Options or ofFramed or ofSelectable or ofBuffered; // Added ofBuffered
+  Options := Options or ofFramed or ofSelectable or ofBuffered or ofFirstClick;
   GrowMode := gfGrowAll;
+  EventMask := EventMask or evKeyDown; // We need to process key presses
 
   FileList := New(PFileListCollection, Init);
+  FocusedItemIndex := 0;
+  TopItemIndex := 0;
 
   {$I-}
-  GetDir(0, InitialPath); // Get current directory for drive 0 (current drive)
+  CurrentPath := SysUtils.GetCurrentDir; // Using SysUtils for more robust current dir
   {$I+}
   if IOResult <> 0 then
-    CurrentPath := '.' + DirectorySeparator // Default to current dir on error
-  else
-    CurrentPath := IncludeTrailingPathDelimiter(InitialPath);
+    CurrentPath := '.' + PathDelim;
 
+  CurrentPath := IncludeTrailingPathDelimiter(CurrentPath);
   LoadDirectory(CurrentPath);
 
   Logger.Log('  TFilePanel.Init finished. Options', Options);
-  Logger.Log('  TFilePanel Size after TGroup.Init', Self.Size);
-  Logger.Log('  TFilePanel Origin after TGroup.Init', Self.Origin);
-
-  if (Bounds.A.X >= Bounds.B.X) or (Bounds.A.Y >= Bounds.B.Y) then
-     Logger.Log('  WARNING: TFilePanel initialized with zero or negative size!')
-  else
-     Logger.Log('  TFilePanel initialized with valid size.');
 end;
 
 destructor TFilePanel.Done;
 begin
   Logger.Log('  TFilePanel.Done starting for panel at', Origin);
   if Assigned(FileList) then
-    FreeAndNil(FileList); // FreeVision's way to dispose and nil a TCollection
+    FreeAndNil(FileList);
   inherited Done;
   Logger.Log('  TFilePanel.Done finished for panel at', Origin);
 end;
@@ -195,20 +196,46 @@ var
   SR: TRawbyteSearchRec;
   Item: PFileListItem;
   DirToList: String;
+  TempPath: String;
+  IsRoot: Boolean;
 begin
-  Logger.Log('  TFilePanel.LoadDirectory: Loading path', Path);
+  TempPath := ExpandFileName(Path); // Ensure we have an absolute path
+  Logger.Log('  TFilePanel.LoadDirectory: Loading path', TempPath);
+
+  if not DirectoryExists(TempPath) then
+  begin
+    Logger.Log('  TFilePanel.LoadDirectory: Path does not exist or is not a directory', TempPath);
+    if Assigned(FileList) then FileList^.FreeAll;
+    Item := New(PFileListItem, Init('<Path not found: ' + TempPath + '>', False));
+    FileList^.Insert(Item);
+    CurrentPath := TempPath; // Still set CurrentPath to what was attempted
+    FocusedItemIndex := 0;
+    TopItemIndex := 0;
+    if GetState(sfVisible) then DrawView;
+    Exit;
+  end;
+
   if Assigned(FileList) then
-    FileList^.FreeAll // Clear existing items
+    FileList^.FreeAll
   else
     FileList := New(PFileListCollection, Init);
 
-  CurrentPath := IncludeTrailingPathDelimiter(Path);
-  DirToList := CurrentPath + '*.*'; // Or just '*' on Unix
+  CurrentPath := IncludeTrailingPathDelimiter(TempPath);
+  DirToList := CurrentPath + '*';
 
-  // Add ".." for parent directory, unless it's a root
-  if (Length(CurrentPath) > 0) and
-     not ((Length(CurrentPath) = 1) and (CurrentPath[1] = DirectorySeparator)) and // Not root "/"
-     not ((Length(CurrentPath) = 3) and (CurrentPath[2] = ':') and (CurrentPath[3] = DirectorySeparator)) then // Not "C:\"
+  // Determine if it's a root path
+  IsRoot := False;
+  if Length(CurrentPath) = 1 then // Root of current drive on Unix-like systems
+    IsRoot := (CurrentPath[1] = PathDelim)
+  else if Length(CurrentPath) = 3 then // C:\ on DOS/Windows
+    IsRoot := (CurrentPath[2] = ':') and (CurrentPath[3] = PathDelim);
+  {$IFDEF UNIX}
+  // For Unix, / is root, /foo/ is not
+  if (CurrentPath = PathDelim) then IsRoot := True;
+  {$ENDIF}
+
+
+  if not IsRoot then
   begin
     Item := New(PFileListItem, Init('..', True));
     FileList^.Insert(Item);
@@ -221,9 +248,11 @@ begin
   begin
     Logger.Log('  TFilePanel.LoadDirectory: FindFirst failed for', DirToList);
     Logger.Log('  DOS Error', DosError);
-    // Optionally insert an error message item
-    Item := New(PFileListItem, Init('<Error reading directory>', False));
+    Item := New(PFileListItem, Init('<Error reading directory: ' + IntToStr(DosError) + '>', False));
     FileList^.Insert(Item);
+    FocusedItemIndex := 0;
+    TopItemIndex := 0;
+    if GetState(sfVisible) then DrawView;
     Exit;
   end;
 
@@ -236,69 +265,213 @@ begin
   until FindNext(SR) <> 0;
   FindClose(SR);
   {$I+}
+
+  FocusedItemIndex := 0;
+  TopItemIndex := 0;
+  if FileList^.Count > 0 then
+  begin
+     if (not IsRoot) and (PFileListItem(FileList^.At(0))^.FileName = '..') then
+        FocusedItemIndex := 0 // Focus ".." by default if present
+     else
+        FocusedItemIndex := 0; // Otherwise first actual item
+  end;
+
   Logger.Log('  TFilePanel.LoadDirectory: Found items', FileList^.Count);
+  if GetState(sfVisible) then DrawView; // Redraw if panel is visible
 end;
+
+procedure TFilePanel.SetFocus(NewFocusIndex: Integer);
+begin
+  if (FileList = nil) or (FileList^.Count = 0) then
+  begin
+    FocusedItemIndex := 0;
+    Exit;
+  end;
+
+  if NewFocusIndex < 0 then
+    FocusedItemIndex := 0
+  else if NewFocusIndex >= FileList^.Count then
+    FocusedItemIndex := FileList^.Count - 1
+  else
+    FocusedItemIndex := NewFocusIndex;
+
+  // Basic scrolling logic (will be improved later)
+  if FocusedItemIndex < TopItemIndex then
+    TopItemIndex := FocusedItemIndex;
+  if FocusedItemIndex >= TopItemIndex + (Size.Y - 2) then // -2 for frame
+    TopItemIndex := FocusedItemIndex - (Size.Y - 2) + 1;
+
+  if GetState(sfVisible) then DrawView;
+end;
+
+procedure TFilePanel.ChangeDirectory(const NewPath: String);
+var
+  OldPath: String;
+  FocusName: String;
+  I: Integer;
+begin
+  OldPath := CurrentPath;
+  FocusName := '';
+
+  if NewPath = '..' then
+  begin
+    if (Length(CurrentPath) > 0) and
+       not ((Length(CurrentPath) = 1) and (CurrentPath[1] = DirectorySeparator)) and
+       not ((Length(CurrentPath) = 3) and (CurrentPath[2] = ':') and (CurrentPath[3] = DirectorySeparator)) then
+    begin
+      FocusName := ExtractFileName(ExcludeTrailingPathDelimiter(CurrentPath));
+      LoadDirectory(ExtractFilePath(ExcludeTrailingPathDelimiter(ExcludeTrailingPathDelimiter(CurrentPath))) + PathDelim);
+    end;
+  end else
+  begin
+    LoadDirectory(NewPath);
+  end;
+
+  // Try to restore focus to the directory we came from, or the first item
+  if FocusName <> '' then
+  begin
+    for I := 0 to FileList^.Count - 1 do
+    begin
+      if PFileListItem(FileList^.At(I))^.FileName = FocusName then
+      begin
+        SetFocus(I);
+        Exit;
+      end;
+    end;
+  end;
+  SetFocus(0); // Default to first item if previous dir not found or not applicable
+end;
+
+procedure TFilePanel.ExecuteFocusedItem;
+var
+  Item: PFileListItem;
+  NewPath: String;
+begin
+  if (FileList = nil) or (FileList^.Count = 0) or
+     (FocusedItemIndex < 0) or (FocusedItemIndex >= FileList^.Count) then
+    Exit;
+
+  Item := PFileListItem(FileList^.At(FocusedItemIndex));
+  if Item = nil then Exit;
+
+  Logger.Log('  TFilePanel.ExecuteFocusedItem: Item', Item^.FileName);
+  Logger.Log('  TFilePanel.ExecuteFocusedItem: IsDirectory', Item^.IsDirectory);
+
+  if Item^.IsDirectory then
+  begin
+    if Item^.FileName = '..' then
+    begin
+      ChangeDirectory('..');
+    end
+    else
+    begin
+      NewPath := IncludeTrailingPathDelimiter(CurrentPath + Item^.FileName);
+      ChangeDirectory(NewPath);
+    end;
+  end
+  else
+  begin
+    // This is a file
+    Logger.Log('  TFilePanel.ExecuteFocusedItem: Attempting to "open" file', Item^.FileName);
+    // Later, this would call an external viewer/editor or internal one
+    //Message(Application, evCommand, cmOK, NewStr('Open file: ' + CurrentPath + Item^.FileName));
+  end;
+end;
+
+procedure TFilePanel.HandleEvent(var Event: TEvent);
+begin
+  inherited HandleEvent(Event);
+
+  if (Event.What = evKeyDown) and GetState(sfFocused) then
+  begin
+    case Event.KeyCode of
+      kbUp:
+        begin
+          SetFocus(FocusedItemIndex - 1);
+          ClearEvent(Event);
+        end;
+      kbDown:
+        begin
+          SetFocus(FocusedItemIndex + 1);
+          ClearEvent(Event);
+        end;
+      kbEnter:
+        begin
+          ExecuteFocusedItem;
+          ClearEvent(Event);
+        end;
+      kbCtrlPgUp, kbCtrlBack: // Ctrl+PgUp or Ctrl+Backspace for parent directory
+        begin
+          ChangeDirectory('..');
+          ClearEvent(Event);
+        end;
+    end;
+  end;
+end;
+
+procedure TFilePanel.DrawItem(Y: Integer; Index: Integer; IsFocused: Boolean; var B: TDrawBuffer);
+var
+  Color, Attrib: Byte;
+  Item: PFileListItem;
+  DisplayName: String;
+  NameWidth: Integer;
+begin
+  NameWidth := Size.X - 2;
+  if NameWidth <=0 then Exit;
+
+  if IsFocused and GetState(sfFocused) then
+    Color := GetColor($04) // Focused item color (palette index 3)
+  else
+    Color := GetColor($01); // Normal item color (palette index 1)
+
+  MoveChar(B, ' ', Color, NameWidth); // Clear the line part
+
+  if (FileList <> nil) and (Index < FileList^.Count) then
+  begin
+    Item := PFileListItem(FileList^.At(Index));
+    if Item <> nil then
+    begin
+      DisplayName := Item^.FileName;
+      if Item^.IsDirectory then
+      begin
+        Attrib := GetColor($02); // Directory color (palette index 2)
+        DisplayName := '[' + DisplayName + ']';
+      end
+      else
+        Attrib := Color; // File color same as normal/focused
+
+      if Length(DisplayName) > NameWidth then
+        SetLength(DisplayName, NameWidth);
+
+      MoveStr(B, DisplayName, Attrib);
+    end;
+  end;
+  WriteLine(1, Y + 1, NameWidth, 1, B);
+end;
+
 
 procedure TFilePanel.Draw;
 var
   B: TDrawBuffer;
-  Color, Attrib: Byte;
-  PanelIDText: String; // Changed from UnicodeString
-  I, Y, MaxDisplayItems, NameWidth: Integer;
-  Item: PFileListItem;
-  DisplayName: String;
+  Y, MaxDisplayItems, CurrentDisplayIndex: Integer;
 begin
-  // Logger.Log('  TFilePanel.Draw CALLED for panel at', Self.Origin);
-  // Logger.Log('  TFilePanel.Draw: Size', Self.Size);
+  inherited Draw;
 
-  inherited Draw; // This draws the frame and clears the background
+  if (Size.X <= 2) or (Size.Y <= 2) then Exit;
 
-  if (Size.X <= 2) or (Size.Y <= 2) then
-  begin
-    // Logger.Log('  TFilePanel.Draw: Panel too small for content.');
-    Exit;
-  end;
-
-  // Client area is inside the frame
   MaxDisplayItems := Size.Y - 2;
-  NameWidth := Size.X - 2; // Width available for file name inside the frame
-
-  if NameWidth <=0 then Exit;
-
-  Color := GetColor($01); // Normal text color
 
   for Y := 0 to MaxDisplayItems - 1 do
   begin
-    MoveChar(B, ' ', Color, NameWidth); // Clear the line inside the panel
-
-    if (FileList <> nil) and (Y < FileList^.Count) then
+    CurrentDisplayIndex := TopItemIndex + Y;
+    if CurrentDisplayIndex < FileList^.Count then
+      DrawItem(Y, CurrentDisplayIndex, CurrentDisplayIndex = FocusedItemIndex, B)
+    else // Draw empty line if no more items
     begin
-      Item := PFileListItem(FileList^.At(Y));
-      if Item <> nil then
-      begin
-        DisplayName := Item^.FileName;
-        if Item^.IsDirectory then
-        begin
-          Attrib := GetColor($02); // Example: different color for directories (use palette index)
-          // You might want to prefix/suffix directories, e.g., "[DIR]" or "/"
-          DisplayName := '[' + DisplayName + ']';
-        end
-        else
-          Attrib := Color;
-
-        // Truncate if too long
-        if Length(DisplayName) > NameWidth then
-          SetLength(DisplayName, NameWidth);
-
-        MoveStr(B, DisplayName, Attrib);
-      end;
+      MoveChar(B, ' ', GetColor($01), Size.X - 2);
+      WriteLine(1, Y + 1, Size.X - 2, 1, B);
     end;
-    // WriteLine coordinates are relative to the view's (0,0)
-    // Frame takes up row 0 and row Size.Y-1.
-    // Client area Y starts at 1.
-    WriteLine(1, Y + 1, NameWidth, 1, B);
   end;
-  // Logger.Log('  TFilePanel.Draw finished for panel at', Self.Origin);
 end;
 
 end.
