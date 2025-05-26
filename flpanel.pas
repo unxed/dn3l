@@ -431,12 +431,11 @@ begin
     if Item <> nil then
     begin
       DisplayName := Item^.FileName;
+
       if Item^.IsDirectory then
-      begin
         DisplayName := '[' + DisplayName + ']';
-      end
-      else
-        Attrib := Color; // File color same as normal/focused
+
+      Attrib := Color; // File color same as normal/focused
 
       if Length(DisplayName) > NameWidth then
         SetLength(DisplayName, NameWidth);
