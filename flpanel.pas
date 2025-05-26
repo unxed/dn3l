@@ -416,7 +416,9 @@ begin
   NameWidth := Size.X;
   if NameWidth <=0 then Exit;
 
-  if IsFocused and GetState(sfFocused) then
+  // We use "((Owner <> nil) and (Owner^.Current = @Self))" focus check here
+  // as GetState(sfFocused) is not reliable and may not work on app start
+  if IsFocused and ((Owner <> nil) and (Owner^.Current = @Self)) then
     Color := GetColor($04) // Focused item color (palette index 3)
   else
     Color := GetColor($01); // Normal item color (palette index 1)
