@@ -83,9 +83,25 @@
 program dn3l;
 
 uses
-  {$IFDEF UNIX}{$IFDEF UseCThreads}
-  cthreads,
-  {$ENDIF}{$ENDIF}
+  {$IFDEF UNIX}
+  //
+  // The `cwstring` unit is required to automatically convert strings
+  // from the system charset (UTF-8 on most *nix systems) to UTF-16
+  // used by the `UnicodeString` type, and vice versa. It uses iconv
+  // for charset conversions. On the most distros iconv API is provided
+  // by GNU libc, so no additional dependencies except for libc.so.6
+  // is introduced. To avoid iconv usage, `LazUTF8` or a similar
+  // custom widestring manager can be used.
+  //
+  // You may also need `LazUTF8` or `utf8utils` unit to use functions
+  // like UTF8FindNearestCharStart() on UTF8 strings.
+  //
+  // See https://gitlab.com/freepascal.org/fpc/source/-/issues/41269
+  // for details.
+  //
+  cwstring,
+  {$IFDEF UseCThreads}cthreads,{$ENDIF}
+  {$ENDIF}
   UApp,
   DNApp,
   DNLogger;

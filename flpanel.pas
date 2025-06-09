@@ -88,8 +88,7 @@ uses
   UViews, Objects, UDrivers, UDialogs,
   Dos,
   SysUtils, // For PathDelim, ExtractFilePath, ChDir, GetCurrentDir, etc.
-  DNLogger,
-  utf8utils; // See https://gitlab.com/freepascal.org/fpc/source/-/issues/41269
+  DNLogger;
 
 type
   PFileListItem = ^TFileListItem;
@@ -441,7 +440,7 @@ begin
       if Length(DisplayName) > NameWidth then
         SetLength(DisplayName, NameWidth);
 
-      MoveStr(B, UTF8ToUTF16(DisplayName), Attrib);
+      MoveStr(B, DisplayName, Attrib);
     end;
   end;
   WriteLine(0, Y, NameWidth, 1, B);
