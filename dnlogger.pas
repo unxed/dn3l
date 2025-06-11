@@ -80,9 +80,10 @@
 //
 //////////////////////////////////////////////////////////////////////////}
 
-unit dnlogger;
+{$mode objfpc}
+{$LONGSTRINGS ON}
 
-{$mode objfpc}{$H+}
+unit dnlogger;
 
 interface
 
