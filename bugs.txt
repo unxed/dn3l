@@ -1,0 +1,7 @@
+
+Create file (or folder) with 🎉 in name.
+Exit dir with this file (or folder) via "..".
+Go back to it again.
+Only half of 🎉 symbol will be displayed.
+Move cursor over it, 🎉 will be displayed correctly.
+Bug presents since initial file system browsing support introduced in 766a51f54193deaa03464db113c55489d4845548
