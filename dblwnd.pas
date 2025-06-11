@@ -89,6 +89,7 @@ interface
 uses
   UViews, Objects, UDrivers,
   FlPanel,
+  commands,
   DNLogger;
 
 type
@@ -97,7 +98,10 @@ type
   public
     LeftPanel: PFilePanel;
     RightPanel: PFilePanel;
+    ActivePanel: PFilePanel;
     constructor Init(var Bounds: TRect; ATitle: UnicodeString; ANumber: Word);
+    procedure SetActivePanel(Panel: PFilePanel);
+    procedure HandleEvent(var Event: TEvent);
   end;
 
 implementation
@@ -163,8 +167,100 @@ begin
   else
     Logger.Log('RightPanel FAILED to create.');
 
+  if RightPanel <> nil then
+    ActivePanel := RightPanel
+  else
+    ActivePanel := LeftPanel;
+
+  if ActivePanel <> nil then
+    ActivePanel^.SetState(sfFocused, True);
+
   Logger.Log('TDoublePanelWindow.Init finished.');
   Logger.Log('--------------------------------------------------');
+end;
+
+procedure TDoublePanelWindow.SetActivePanel(Panel: PFilePanel);
+begin
+  if ActivePanel = Panel then Exit;
+
+  if ActivePanel <> nil then
+    ActivePanel^.SetState(sfFocused, False);
+
+  ActivePanel := Panel;
+
+  if ActivePanel <> nil then
+    ActivePanel^.SetState(sfFocused, True);
+
+  Logger.Log('TDoublePanelWindow.SetActivePanel: New active panel', Pointer(ActivePanel));
+end;
+
+procedure TDoublePanelWindow.HandleEvent(var Event: TEvent);
+var
+  TargetPanel: PFilePanel;
+begin
+  // Let TWindow/TGroup do its default processing first.
+  // This includes handling mouse clicks (which sets Self.Current)
+  // and basic frame interactions.
+  inherited HandleEvent(Event);
+
+  // If a mouse click (or other mechanism in TGroup) changed the focused child (Self.Current),
+  // update our ActivePanel to match it, ensuring it IS one of our panels.
+  if (Self.Current <> nil) and (PView(ActivePanel) <> Self.Current) then
+  begin
+    if Self.Current = PView(LeftPanel) then
+    begin
+      Logger.Log('TDoublePanelWindow.HandleEvent: Self.Current changed to LeftPanel, updating ActivePanel.');
+      SetActivePanel(LeftPanel); // SetActivePanel will now call SetCurrent
+    end
+    else if Self.Current = PView(RightPanel) then
+    begin
+      Logger.Log('TDoublePanelWindow.HandleEvent: Self.Current changed to RightPanel, updating ActivePanel.');
+      SetActivePanel(RightPanel);
+    end
+    // If Self.Current is something else, ActivePanel remains unchanged for now,
+    // which might be an issue if other focusable children are added later.
+  end;
+
+  // Now handle keys specific to TDoublePanelWindow or route to active panel
+  if Event.What = evKeyDown then
+  begin
+    if Event.KeyCode = kbTab then
+    begin
+      Logger.Log('TDoublePanelWindow.HandleEvent: Tab pressed.');
+      if ActivePanel = LeftPanel then
+        TargetPanel := RightPanel
+      else
+        TargetPanel := LeftPanel;
+
+      if TargetPanel <> nil then // Ensure the target panel exists
+        SetActivePanel(TargetPanel);
+      ClearEvent(Event);
+    end
+    else if (ActivePanel <> nil) and ActivePanel^.GetState(sfFocused) then
+    begin
+      // Only pass other key events if our ActivePanel is indeed the focused one.
+      // This check is a bit redundant if SetActivePanel and TGroup.Current are in sync,
+      // but good for safety.
+      // Logger.Log('TDoublePanelWindow.HandleEvent: Passing KeyDown to ActivePanel', Pointer(ActivePanel));
+      ActivePanel^.HandleEvent(Event);
+    end;
+  end
+  else if Event.What = evCommand then
+  begin
+    // Pass relevant commands to the active (focused) panel
+    if (ActivePanel <> nil) and ActivePanel^.GetState(sfFocused) then
+    begin
+      case Event.Command of
+        cmMakeDir: // And other commands intended for the active file panel
+          begin
+            Logger.Log('TDoublePanelWindow.HandleEvent: cmMakeDir received.');
+            Logger.Log('TDoublePanelWindow.HandleEvent: Passing cmMakeDir to ActivePanel', Pointer(ActivePanel));
+            ActivePanel^.HandleEvent(Event);
+          end;
+      // Add other command delegations here if needed
+      end;
+    end;
+  end;
 end;
 
 end.

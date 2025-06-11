@@ -87,6 +87,7 @@ unit dnapp;
 interface
 
 uses
+  dnlogger, sysutils,
   UApp, UViews, Objects, UDrivers, UMenus, // Free Vision units
   DblWnd;                                // Our double window unit
 
@@ -103,7 +104,7 @@ type
 
 implementation
 
-uses FVConsts; // For cmQuit, kbAltX
+uses commands, FVConsts; // For cmQuit, kbAltX
 
 constructor TDNApp.Init;
 begin
@@ -140,7 +141,9 @@ begin
   R.A.Y := R.B.Y - 1;
   StatusLine := New(PStatusLine, Init(R,
     NewStatusDef(0, $FFFF,
-      NewStatusKey('~Alt+X~ Exit', kbAltX, cmQuit, nil),
+      NewStatusKey('~Alt+X~ Exit', kbAltX, cmQuit,
+      NewStatusKey('~F7~ MkDir', kbF7, cmMakeDir, // Add F7 here
+      nil)),
     nil)
   ));
   if StatusLine <> nil then
@@ -172,14 +175,57 @@ end;
 
 procedure TDNApp.HandleEvent(var Event: TEvent);
 begin
-  inherited HandleEvent(Event); // This will handle cmQuit from Alt+X via menu
-  // Fallback if menu is not set up or Alt+X is not in menu
-  if (Event.What = evKeyDown) and (Event.KeyCode = kbAltX) then
+  // Log interesting events
+  if ((Event.What = evCommand) and (Event.Command = cmQuit)) or
+     ((Event.What = evKeyDown) and (Event.KeyCode = kbAltX)) or
+     ((Event.What = evCommand) and (Event.Command = cmMakeDir)) or // Log F7
+     ((Event.What = evKeyDown) and (Event.KeyCode = kbF7)) then   // Log F7
   begin
-    if (Desktop = nil) or (Desktop^.Valid(cmQuit)) then
-    begin
-      EndModal(cmQuit);
-      ClearEvent(Event);
+    Logger.Log('TDNApp.HandleEvent: Processing Event');
+    Logger.Log('  What', IntToStr(Event.What));
+    Logger.Log('  Command/KeyCode', Word(Event.Command)); // Use Word to log both
+    Logger.Log('  InfoPtr', Event.InfoPtr);
+  end;
+
+  inherited HandleEvent(Event); // TApplication handles basic menu events etc.
+
+  if Event.What = evKeyDown then
+  begin
+    case Event.KeyCode of
+      kbAltX:
+        begin
+          Logger.Log('TDNApp.HandleEvent: Alt+X detected, checking if Desktop can close.');
+          if (Desktop = nil) or (Desktop^.Valid(cmQuit)) then
+          begin
+            Logger.Log('TDNApp.HandleEvent: Desktop valid for quit or nil, ending modal.');
+            EndModal(cmQuit);
+            ClearEvent(Event);
+          end
+          else
+            Logger.Log('TDNApp.HandleEvent: Desktop NOT valid for quit.');
+        end;
+      kbF7: // Directly handle F7 if not caught by a menu
+        begin
+          Logger.Log('TDNApp.HandleEvent: F7 KeyDown detected. Posting cmMakeDir.');
+          // Post as a command to be handled by the focused view
+          Event.What := evCommand;
+          Event.Command := cmMakeDir;
+          Event.InfoPtr := nil;
+          PutEvent(Event); // Put it back in the queue for focused view processing
+          // Don't ClearEvent here, let the focused view handle it.
+        end;
+    end;
+  end
+  else if Event.What = evCommand then
+  begin
+    case Event.Command of
+      cmMakeDir: // If it bubbles up to the application, pass to Desktop
+        begin
+          Logger.Log('TDNApp.HandleEvent: cmMakeDir command received at App level. Passing to Desktop.');
+          if Desktop <> nil then
+            Desktop^.HandleEvent(Event);
+          // If Desktop doesn't clear it, it's unhandled at this level
+        end;
     end;
   end;
 end;
