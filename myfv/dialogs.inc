@@ -1082,15 +1082,15 @@ resourcestring  slCancel='Cancel';
 
 {$IFDEF FPC_DOTTEDUNITS}
 {$ifdef FV_UNICODE}
-USES FreeVision.Uapp,FreeVision.Uhistlist;                             { Standard GFV unit }
+USES FreeVision.Uapp,FreeVision.Uhistlist,FreeVision.UFVClip;                            { Standard GFV unit }
 {$else FV_UNICODE}
-USES FreeVision.App,FreeVision.Histlist;                               { Standard GFV unit }
+USES FreeVision.App,FreeVision.Histlist,FreeVision.FVClip;                               { Standard GFV unit }
 {$endif FV_UNICODE}
 {$ELSE FPC_DOTTEDUNITS}
 {$ifdef FV_UNICODE}
-USES UApp,UHistList;                             { Standard GFV unit }
+USES UApp,UHistList,UFVClip;                            { Standard GFV unit }
 {$else FV_UNICODE}
-USES App,HistList;                               { Standard GFV unit }
+USES App,HistList,FVClip;                               { Standard GFV unit }
 {$endif FV_UNICODE}
 {$ENDIF FPC_DOTTEDUNITS}
 
@@ -1682,6 +1682,7 @@ PROCEDURE TInputLine.HandleEvent (Var Event: TEvent);
 CONST PadKeys = [$47, $4B, $4D, $4F, $73, $74];
 VAR WasAppending: Boolean; ExtendBlock: Boolean; OldData: String;
 Delta, Anchor, OldCurPos, OldFirstPos, OldSelStart, OldSelEnd: Sw_Integer;
+SelectedTextAnsi: AnsiString; // For SetGlobalClipboardData
 
    FUNCTION MouseDelta: Sw_Integer;
    VAR Mouse : TPOint;
@@ -1899,6 +1900,45 @@ BEGIN
              ExtendBlock := True;                     { Extended block true }
          End Else ExtendBlock := False;               { No extended block }
          Case Event.KeyCode Of
+           kbCtrlIns: // COPY command
+             begin
+               if (Data <> Sw_PString_Empty) and (SelStart < SelEnd) then
+               begin
+                 {$IFDEF UNIX}
+                 // Copy selected text to OSC 52 clipboard
+                 SelectedTextAnsi := AnsiString(Copy(Data Sw_PString_DeRef, SelStart + 1, SelEnd - SelStart));
+                 if Length(SelectedTextAnsi) > 0 then
+                 begin
+                   SetGlobalClipboardData(PAnsiChar(SelectedTextAnsi), Length(SelectedTextAnsi));
+                 end;
+                 {$ENDIF}
+               end;
+               ClearEvent(Event);
+               RestoreState; // Restore state as copy doesn't change input line content
+               Exit; // Exit after handling
+             end;
+           kbShiftDel: // CUT command
+             begin
+               if (Data <> Sw_PString_Empty) and (SelStart < SelEnd) then
+               begin
+                 {$IFDEF UNIX}
+                 // Copy selected text to OSC 52 clipboard
+                 SelectedTextAnsi := AnsiString(Copy(Data Sw_PString_DeRef, SelStart + 1, SelEnd - SelStart));
+                 if Length(SelectedTextAnsi) > 0 then
+                 begin
+                     SetGlobalClipboardData(PAnsiChar(SelectedTextAnsi), Length(SelectedTextAnsi));
+                 end;
+                 {$ELSE}
+                 // Fallback or non-Unix: Use internal FV clipboard
+                 // UApp.Clipboard^ := Copy(Data^, SelStart + 1, SelEnd - SelStart);
+                 {$ENDIF}
+                 DeleteSelect; // Then delete the selection
+                 CheckValid(True); // Validate after deletion
+               end;
+               ClearEvent(Event);
+               // SaveState was called, current state after deletion is the new state.
+               Exit; // Exit after handling
+             end;
            kbLeft: If (CurPos > 0) Then Dec(CurPos);  { Move cursor left }
            kbRight: If (Data <> Sw_PString_Empty) AND   { Move right cursor }
            (CurPos < Length(Data Sw_PString_DeRef)) Then Begin        { Check not at end }
