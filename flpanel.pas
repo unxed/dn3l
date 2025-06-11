@@ -95,9 +95,9 @@ uses
 type
   PFileListItem = ^TFileListItem;
   TFileListItem = object(TObject)
-    FileName: String;
+    FileName: UnicodeString;
     IsDirectory: Boolean;
-    constructor Init(const AFileName: String; AIsDirectory: Boolean);
+    constructor Init(const AFileName: UnicodeString; AIsDirectory: Boolean);
     destructor Done; virtual;
   end;
 
@@ -110,7 +110,7 @@ type
   TFilePanel = object(TGroup)
   public
     FileList: PFileListCollection;
-    CurrentPath: String;
+    CurrentPath: UnicodeString;
     FocusedItemIndex: Integer; // Index of the currently focused item
     TopItemIndex: Integer;     // Index of the item displayed at the top (for scrolling later)
 
@@ -118,11 +118,11 @@ type
     destructor Done; virtual;
     procedure Draw; virtual;
     procedure HandleEvent(var Event: TEvent); virtual; // To handle keyboard
-    procedure LoadDirectory(const Path: String);
+    procedure LoadDirectory(const Path: UnicodeString);
     procedure SetFocus(NewFocusIndex: Integer);
   private
     procedure DrawItem(Y: Integer; Index: Integer; IsFocused: Boolean; var B: TDrawBuffer);
-    procedure ChangeDirectory(const NewPath: String);
+    procedure ChangeDirectory(const NewPath: UnicodeString);
     procedure ExecuteFocusedItem;
   end;
 
@@ -132,7 +132,7 @@ uses FVConsts; // For key codes like kbUp, kbDown, kbEnter
 
 { TFileListItem }
 
-constructor TFileListItem.Init(const AFileName: String; AIsDirectory: Boolean);
+constructor TFileListItem.Init(const AFileName: UnicodeString; AIsDirectory: Boolean);
 begin
   inherited Init;
   FileName := AFileName;
@@ -155,7 +155,7 @@ end;
 
 constructor TFilePanel.Init(var Bounds: TRect);
 var
-  InitialPath: String;
+  InitialPath: UnicodeString;
 begin
   Logger.Log('  TFilePanel.Init starting...');
   Logger.Log('  Initial Bounds for TFilePanel', Bounds);
@@ -190,12 +190,12 @@ begin
   Logger.Log('  TFilePanel.Done finished for panel at', Origin);
 end;
 
-procedure TFilePanel.LoadDirectory(const Path: String);
+procedure TFilePanel.LoadDirectory(const Path: UnicodeString);
 var
   SR: TRawbyteSearchRec;
   Item: PFileListItem;
-  DirToList: String;
-  TempPath: String;
+  DirToList: UnicodeString;
+  TempPath: UnicodeString;
   IsRoot: Boolean;
 begin
   TempPath := ExpandFileName(Path); // Ensure we have an absolute path
@@ -303,10 +303,10 @@ begin
   if GetState(sfVisible) then DrawView;
 end;
 
-procedure TFilePanel.ChangeDirectory(const NewPath: String);
+procedure TFilePanel.ChangeDirectory(const NewPath: UnicodeString);
 var
-  OldPath: String;
-  FocusName: String;
+  OldPath: UnicodeString;
+  FocusName: UnicodeString;
   I: Integer;
 begin
   OldPath := CurrentPath;
@@ -344,7 +344,7 @@ end;
 procedure TFilePanel.ExecuteFocusedItem;
 var
   Item: PFileListItem;
-  NewPath: String;
+  NewPath: UnicodeString;
 begin
   if (FileList = nil) or (FileList^.Count = 0) or
      (FocusedItemIndex < 0) or (FocusedItemIndex >= FileList^.Count) then
@@ -412,7 +412,7 @@ procedure TFilePanel.DrawItem(Y: Integer; Index: Integer; IsFocused: Boolean; va
 var
   Color, Attrib: Byte;
   Item: PFileListItem;
-  DisplayName: String;
+  DisplayName: UnicodeString;
   NameWidth: Integer;
 begin
   NameWidth := Size.X;
@@ -441,6 +441,8 @@ begin
 
       if Length(DisplayName) > NameWidth then
         SetLength(DisplayName, NameWidth);
+
+      //Logger.Log('Drawing item ' + DisplayName);
 
       MoveStr(B, DisplayName, Attrib);
     end;

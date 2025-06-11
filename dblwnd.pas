@@ -97,12 +97,12 @@ type
   public
     LeftPanel: PFilePanel;
     RightPanel: PFilePanel;
-    constructor Init(var Bounds: TRect; ATitle: String; ANumber: Word);
+    constructor Init(var Bounds: TRect; ATitle: UnicodeString; ANumber: Word);
   end;
 
 implementation
 
-constructor TDoublePanelWindow.Init(var Bounds: TRect; ATitle: String; ANumber: Word);
+constructor TDoublePanelWindow.Init(var Bounds: TRect; ATitle: UnicodeString; ANumber: Word);
 var
   ClientR, PanelR: TRect;
   MidX: Integer;

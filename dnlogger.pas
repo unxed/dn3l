@@ -96,25 +96,23 @@ type
   private
     FLogFile: Text;
     FInitialized: Boolean;
-    FLogFilePath: string;
+    FLogFilePath: UnicodeString;
     FOpenFileError: Boolean;
     procedure OpenLogFile;
-    function GetTimestamp: string;
+    function GetTimestamp: UnicodeString;
   public
-    constructor Create(const ALogFilePath: string = 'dn3l.log');
+    constructor Create(const ALogFilePath: UnicodeString = 'dn3l.log');
     destructor Destroy; override;
 
-    procedure Log(const Message: string); overload; // Ansi/UTF8 String
-    procedure Log(const Key: string; const Value: UnicodeString); overload;
-    procedure Log(const Key: string; const Value: string); overload; // Ansi/UTF8 String
-    procedure Log(const Key: string; const Value: ShortString); overload; // Explicit ShortString
-    //procedure Log(const Key: string; const Value: Integer); overload;
-    procedure Log(const Key: string; const Value: Word); overload;
-    procedure Log(const Key: string; const Value: LongInt); overload;
-    procedure Log(const Key: string; const Value: Boolean); overload;
-    procedure Log(const Key: string; const Value: Pointer); overload;
-    procedure Log(const Key: string; const R: TRect); overload;
-    procedure Log(const Key: string; const P: TPoint); overload;
+    procedure Log(const Message: UnicodeString); overload; // Ansi/UTF8 String
+    procedure Log(const Key: UnicodeString; const Value: UnicodeString); overload;
+    procedure Log(const Key: UnicodeString; const Value: ShortString); overload; // Explicit ShortString
+    procedure Log(const Key: UnicodeString; const Value: Word); overload;
+    procedure Log(const Key: UnicodeString; const Value: LongInt); overload;
+    procedure Log(const Key: UnicodeString; const Value: Boolean); overload;
+    procedure Log(const Key: UnicodeString; const Value: Pointer); overload;
+    procedure Log(const Key: UnicodeString; const R: TRect); overload;
+    procedure Log(const Key: UnicodeString; const P: TPoint); overload;
   end;
 
 var
@@ -135,7 +133,7 @@ uses
 
 { TLogger }
 
-constructor TLogger.Create(const ALogFilePath: string);
+constructor TLogger.Create(const ALogFilePath: UnicodeString);
 begin
   inherited Create;
   FInitialized := False;
@@ -157,7 +155,7 @@ begin
   inherited Destroy;
 end;
 
-function TLogger.GetTimestamp: string;
+function TLogger.GetTimestamp: UnicodeString;
 var
   Y, M, D, H, Min, S, MS, WD: Word; // WD for DayOfWeek if needed by GetDate
   {$IFDEF UNIX}
@@ -223,7 +221,7 @@ begin
   FInitialized := True;
 end;
 
-procedure TLogger.Log(const Message: string);
+procedure TLogger.Log(const Message: UnicodeString);
 begin
   if not FInitialized then
   begin
@@ -241,7 +239,7 @@ begin
   end;
 end;
 
-procedure TLogger.Log(const Key: string; const Value: UnicodeString);
+procedure TLogger.Log(const Key: UnicodeString; const Value: UnicodeString);
 begin
   // Free Vision's UnicodeString might be a distinct type.
   // For logging, convert to standard FPC string if necessary, or handle directly.
@@ -249,34 +247,22 @@ begin
   Log(Key + ': "' + string(Value) + '"'); // Explicit cast to string for safety
 end;
 
-procedure TLogger.Log(const Key: string; const Value: string); // Ansi/UTF8 String
-begin
-  Log(Key + ': "' + Value + '"');
-end;
-
-procedure TLogger.Log(const Key: string; const Value: ShortString);
+procedure TLogger.Log(const Key: UnicodeString; const Value: ShortString);
 begin
   Log(Key + ': "' + string(Value) + '"'); // Cast ShortString to String
 end;
 
-{
-procedure TLogger.Log(const Key: string; const Value: Integer);
-begin
-  Log(Key + ': ' + IntToStr(Value));
-end;
-}
-
-procedure TLogger.Log(const Key: string; const Value: Word);
+procedure TLogger.Log(const Key: UnicodeString; const Value: Word);
 begin
   Log(Key + ': ' + IntToStr(Value));
 end;
 
-procedure TLogger.Log(const Key: string; const Value: LongInt);
+procedure TLogger.Log(const Key: UnicodeString; const Value: LongInt);
 begin
   Log(Key + ': ' + IntToStr(Value));
 end;
 
-procedure TLogger.Log(const Key: string; const Value: Boolean);
+procedure TLogger.Log(const Key: UnicodeString; const Value: Boolean);
 begin
   if Value then
     Log(Key + ': True')
@@ -284,18 +270,18 @@ begin
     Log(Key + ': False');
 end;
 
-procedure TLogger.Log(const Key: string; const Value: Pointer);
+procedure TLogger.Log(const Key: UnicodeString; const Value: Pointer);
 begin
   Log(Key + ': ' + SysUtils.Format('$%p', [Value]));
 end;
 
-procedure TLogger.Log(const Key: string; const R: TRect);
+procedure TLogger.Log(const Key: UnicodeString; const R: TRect);
 begin
   Log(Key + SysUtils.Format(': TRect(A=(%d,%d), B=(%d,%d)) Size=(%d,%d)',
     [R.A.X, R.A.Y, R.B.X, R.B.Y, R.B.X - R.A.X, R.B.Y - R.A.Y]));
 end;
 
-procedure TLogger.Log(const Key: string; const P: TPoint);
+procedure TLogger.Log(const Key: UnicodeString; const P: TPoint);
 begin
   Log(Key + SysUtils.Format(': TPoint(X=%d, Y=%d)', [P.X, P.Y]));
 end;
