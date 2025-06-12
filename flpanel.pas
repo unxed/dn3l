@@ -560,6 +560,10 @@ begin
     if (Event.What = evKeyDown) then
     begin
       case Event.KeyCode of
+        kbCtrlEnter:
+          begin
+            MessageBox('Ctrl+Enter pressed', nil, mfOKButton );
+          end;
         kbUp:
           begin
             Logger.Log('  TFilePanel.HandleEvent: kbUp on focused panel', Origin);
