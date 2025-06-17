@@ -1904,41 +1904,27 @@ BEGIN
              begin
                if (Data <> Sw_PString_Empty) and (SelStart < SelEnd) then
                begin
-                 {$IFDEF UNIX}
                  // Copy selected text to OSC 52 clipboard
                  SelectedTextAnsi := AnsiString(Copy(Data Sw_PString_DeRef, SelStart + 1, SelEnd - SelStart));
                  if Length(SelectedTextAnsi) > 0 then
                  begin
                    SetGlobalClipboardData(PAnsiChar(SelectedTextAnsi), Length(SelectedTextAnsi));
                  end;
-                 {$ENDIF}
                end;
-               ClearEvent(Event);
-               RestoreState; // Restore state as copy doesn't change input line content
-               Exit; // Exit after handling
              end;
            kbShiftDel: // CUT command
              begin
                if (Data <> Sw_PString_Empty) and (SelStart < SelEnd) then
                begin
-                 {$IFDEF UNIX}
                  // Copy selected text to OSC 52 clipboard
                  SelectedTextAnsi := AnsiString(Copy(Data Sw_PString_DeRef, SelStart + 1, SelEnd - SelStart));
                  if Length(SelectedTextAnsi) > 0 then
                  begin
                      SetGlobalClipboardData(PAnsiChar(SelectedTextAnsi), Length(SelectedTextAnsi));
                  end;
-                 {$ELSE}
-                 // Fallback or non-Unix: Use internal FV clipboard
-                 // UApp.Clipboard^ := Copy(Data^, SelStart + 1, SelEnd - SelStart);
-                 {$ENDIF}
                  DeleteSelect; // Then delete the selection
-                 DrawView;
                  CheckValid(True); // Validate after deletion
                end;
-               ClearEvent(Event);
-               // SaveState was called, current state after deletion is the new state.
-               Exit; // Exit after handling
              end;
            kbLeft: If (CurPos > 0) Then Dec(CurPos);  { Move cursor left }
            kbRight: If (Data <> Sw_PString_Empty) AND   { Move right cursor }
