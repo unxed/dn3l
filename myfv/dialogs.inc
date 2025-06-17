@@ -1082,9 +1082,9 @@ resourcestring  slCancel='Cancel';
 
 {$IFDEF FPC_DOTTEDUNITS}
 {$ifdef FV_UNICODE}
-USES FreeVision.Uapp,FreeVision.Uhistlist,FreeVision.UFVClip;                            { Standard GFV unit }
+USES FreeVision.Uapp,FreeVision.Uhistlist,FreeVision.Ufvclip;                            { Standard GFV unit }
 {$else FV_UNICODE}
-USES FreeVision.App,FreeVision.Histlist,FreeVision.FVClip;                               { Standard GFV unit }
+USES FreeVision.App,FreeVision.Histlist,FreeVision.Fvclip;                               { Standard GFV unit }
 {$endif FV_UNICODE}
 {$ELSE FPC_DOTTEDUNITS}
 {$ifdef FV_UNICODE}
@@ -1933,6 +1933,7 @@ BEGIN
                  // UApp.Clipboard^ := Copy(Data^, SelStart + 1, SelEnd - SelStart);
                  {$ENDIF}
                  DeleteSelect; // Then delete the selection
+                 DrawView;
                  CheckValid(True); // Validate after deletion
                end;
                ClearEvent(Event);
