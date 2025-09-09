@@ -1,0 +1,43 @@
+diff --git a/packages/fv/examples/Makefile.fpc b/packages/fv/examples/Makefile.fpc
+index 608d991f0b..21e2163e8c 100644
+--- a/packages/fv/examples/Makefile.fpc
++++ b/packages/fv/examples/Makefile.fpc
+@@ -1,15 +1,12 @@
+-#
+-#   Makefile.fpc for Free Vision Test/Examples
+-#
+-
+ [target]
+-programs=testapp
++programs=testuapp
+ 
+ [compiler]
+-includedir=../src
+-
+-[require]
+-packages=fv
++unitdir=../src
++unitdir=../../rtl-console/src/unix
++unitdir=../../rtl-unicode/src/inc
++unitdir=../../rtl-extra/src/inc
++includedir=../../rtl-console/src/inc
+ 
+ [default]
+-fpcdir=../../..
++fpcdir=../../..
+\ No newline at end of file
+diff --git a/packages/fv/examples/testuapp.pas b/packages/fv/examples/testuapp.pas
+index 9d7101a386..0f1175a9f4 100644
+--- a/packages/fv/examples/testuapp.pas
++++ b/packages/fv/examples/testuapp.pas
+@@ -1,9 +1,9 @@
+ program testuapp;
+ 
+ {$codepage UTF8}
+-{$h-}
+ 
+ uses
++  cwstring,
+   {$ifdef UNIX}fpwidestring,{$endif}
+   Objects, UDrivers, UViews, UMenus, UDialogs, UApp, UMsgBox, UInpLong, UTabs, SysUtils;
+ 

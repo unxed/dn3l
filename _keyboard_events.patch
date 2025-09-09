@@ -1,0 +1,13 @@
+diff --git a/packages/rtl-console/src/unix/keyboard.pp b/packages/rtl-console/src/unix/keyboard.pp
+index 12b517861d..17ad4ef458 100644
+--- a/packages/rtl-console/src/unix/keyboard.pp
++++ b/packages/rtl-console/src/unix/keyboard.pp
+@@ -2367,7 +2367,7 @@ function ReadKey:TEnhancedKeyEvent;
+               nKey:=unicodeCodePoint;
+               if (enh[1]>=0) then
+                 nKey:=enh[1];
+-              BuildKeyEvent(modifier,nKey,nKey);
++              BuildKeyEvent(modifier,nKey,enh[2]);
+            end;
+            arrayind:=0;
+         end;
