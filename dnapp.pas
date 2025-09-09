@@ -143,7 +143,8 @@ begin
     NewStatusDef(0, $FFFF,
       NewStatusKey('~Alt+X~ Exit', kbAltX, cmQuit,
       NewStatusKey('~F7~ MkDir', kbF7, cmMakeDir, // Add F7 here
-      nil)),
+      NewStatusKey('~Alt+a~ MkDir', kbAltA, cmMakeDir, // Add F7 here
+      nil))),
     nil)
   ));
   if StatusLine <> nil then
