@@ -1,3 +1,8 @@
 
 https://gitlab.com/freepascal.org/fpc/source.git
 51fe99c7527f40e142cf617594e684d9adc0a44a
+
+Problems left:
+
+- Menus are not closed on pressing Esc key
+- File mask drop down list in Open File dialog is not closed on pressing Esc key
