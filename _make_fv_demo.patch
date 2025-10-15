@@ -27,6 +27,19 @@ index 608d991f0b..94b5406c72 100644
 -fpcdir=../../..
 +fpcdir=../../..
 \ No newline at end of file
+diff --git a/packages/fv/examples/filedlg.pas b/packages/fv/examples/filedlg.pas
+index 342db727ed..f3e2f84a57 100644
+--- a/packages/fv/examples/filedlg.pas
++++ b/packages/fv/examples/filedlg.pas
+@@ -37,7 +37,7 @@ procedure TFileDlgApp.InitMenuBar;
+ begin
+   GetExtent(R);
+   R.B.Y := R.A.Y + 1;
+-  MenuBar := New(PMenubar, Init(R, NewMenu(NewSubMenu('~M~enu',  hcNoContext,
++  MenuBar := New(PMenubar, Init(R, NewMenu(NewSubMenu('~Ф~айл',  hcNoContext,
+     NewMenu(
+     NewItem(cMoStr+'~O~pen File Dialog', 'F2', kbF2, cmOpneFileDlg, hcNoContext,
+     NewItem(cMcStr+'~C~hange Directory Dialog', 'F4', kbF4, cmDirChangeDlg, hcNoContext,
 diff --git a/packages/fv/examples/testuapp.pas b/packages/fv/examples/testuapp.pas
 index 9d7101a386..8b979f6904 100644
 --- a/packages/fv/examples/testuapp.pas
