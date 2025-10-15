@@ -1,33 +1,34 @@
 diff --git a/packages/fv/examples/Makefile.fpc b/packages/fv/examples/Makefile.fpc
-index 608d991f0b..21e2163e8c 100644
+index 608d991f0b..94b5406c72 100644
 --- a/packages/fv/examples/Makefile.fpc
 +++ b/packages/fv/examples/Makefile.fpc
-@@ -1,15 +1,12 @@
+@@ -1,15 +1,15 @@
 -#
 -#   Makefile.fpc for Free Vision Test/Examples
 -#
 -
  [target]
--programs=testapp
+ programs=testapp
 +programs=testuapp
++programs=filedlg
  
  [compiler]
--includedir=../src
--
--[require]
--packages=fv
 +unitdir=../src
 +unitdir=../../rtl-console/src/unix
 +unitdir=../../rtl-unicode/src/inc
 +unitdir=../../rtl-extra/src/inc
 +includedir=../../rtl-console/src/inc
+ includedir=../src
  
+-[require]
+-packages=fv
+-
  [default]
 -fpcdir=../../..
 +fpcdir=../../..
 \ No newline at end of file
 diff --git a/packages/fv/examples/testuapp.pas b/packages/fv/examples/testuapp.pas
-index 9d7101a386..0f1175a9f4 100644
+index 9d7101a386..8b979f6904 100644
 --- a/packages/fv/examples/testuapp.pas
 +++ b/packages/fv/examples/testuapp.pas
 @@ -1,9 +1,9 @@
@@ -41,3 +42,12 @@ index 9d7101a386..0f1175a9f4 100644
    {$ifdef UNIX}fpwidestring,{$endif}
    Objects, UDrivers, UViews, UMenus, UDialogs, UApp, UMsgBox, UInpLong, UTabs, SysUtils;
  
+@@ -147,7 +147,7 @@ procedure TMyUnicodeApp.Window3;
+     Lb^.Newlist(List);                               { Give list to listbox }
+     R.Assign(30, 2, 40, 4);                          { Assign area }
+ 
+-    P^.Insert(New(PButton, Init(R, '好的', 100, bfGrabFocus)));{ Create okay button }
++    P^.Insert(New(PButton, Init(R, '~А~лё', 100, bfGrabFocus)));{ Create okay button }
+     R.Assign(30, 15, 40, 17);                        { Assign area }
+ 
+     Desktop^.Insert(P);                              { Insert dialog }
