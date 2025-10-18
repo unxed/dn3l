@@ -1,0 +1,25 @@
+
+Keyboard:
+
+en layout:
+Alt + Latin top menu
+
+ru layout:
+Alt + Latin top menu
+Alt + Non latin top menu
+
+ESC, DEL, BACKSPACE, ENTER, SPACE, TAB
+
+Double ESC events instead of single
+
+ESC: one press is enough
+
+Shift+Tab
+
+Text input, Shift, Caps
+
+editor:
+
+Ctrl + A
+Ctrl + Arrows, PgUp/Dn
+Ctrl + Shift + Arrows, PgUp/Dn
